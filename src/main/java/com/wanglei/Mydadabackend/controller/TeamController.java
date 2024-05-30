@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 
 @RestController //适用于编写restful风格的API，返回值默认为json类型
 @RequestMapping("/team")
-@CrossOrigin
+@CrossOrigin(origins = "http://localhost:8080",allowCredentials = "true")
 @Slf4j
 public class TeamController {
 

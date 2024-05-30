@@ -28,6 +28,7 @@ import java.util.Date;
 
 @RestController
 @RequestMapping("/app")
+@CrossOrigin(origins = "http://localhost:8080",allowCredentials = "true")
 @Slf4j
 public class AppController {
 

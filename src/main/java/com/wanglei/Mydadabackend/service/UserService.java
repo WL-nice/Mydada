@@ -5,6 +5,7 @@ import com.wanglei.Mydadabackend.model.domain.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.wanglei.Mydadabackend.model.request.user.UserQueryRequest;
 import com.wanglei.Mydadabackend.model.request.user.UserUpdateRequest;
+import com.wanglei.Mydadabackend.model.vo.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
@@ -83,6 +84,10 @@ public interface UserService extends IService<User> {
     boolean isAdmin(User loginUser);
 
     QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest);
+
+    UserVO getUserVO(User user);
+
+    UserVO getUserVOById(Long id);
 }
 
 

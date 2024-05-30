@@ -8,6 +8,7 @@ import com.wanglei.Mydadabackend.constant.CommonConstant;
 import com.wanglei.Mydadabackend.exception.BusinessException;
 import com.wanglei.Mydadabackend.model.request.user.UserQueryRequest;
 import com.wanglei.Mydadabackend.model.request.user.UserUpdateRequest;
+import com.wanglei.Mydadabackend.model.vo.UserVO;
 import com.wanglei.Mydadabackend.service.UserService;
 import com.wanglei.Mydadabackend.model.domain.User;
 import com.wanglei.Mydadabackend.mapper.UserMapper;
@@ -207,12 +208,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorCode.NULL_ERROR);
         }
         User user = new User();
-        BeanUtils.copyProperties(userUpdateRequest,user);
+        BeanUtils.copyProperties(userUpdateRequest, user);
         return userMapper.updateById(user);
 
     }
-
-
 
 
     /**
@@ -245,6 +244,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         queryWrapper.eq(id != null && id > 0, "id", id);
         queryWrapper.orderBy(StringUtils.isNotBlank(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC), sortField);
         return queryWrapper;
+    }
+
+    @Override
+    public UserVO getUserVO(User user) {
+        return UserVO.objToVo(user);
+    }
+
+    @Override
+    public UserVO getUserVOById(Long id) {
+        User user = this.getById(id);
+        return this.getUserVO(user);
     }
 
 

@@ -11,15 +11,21 @@ import com.wanglei.Mydadabackend.constant.CommonConstant;
 import com.wanglei.Mydadabackend.exception.BusinessException;
 import com.wanglei.Mydadabackend.mapper.AppMapper;
 import com.wanglei.Mydadabackend.model.domain.App;
+import com.wanglei.Mydadabackend.model.domain.User;
 import com.wanglei.Mydadabackend.model.enums.AppTypeEnum;
 import com.wanglei.Mydadabackend.model.request.app.AppQueryRequest;
 import com.wanglei.Mydadabackend.model.vo.AppVO;
 import com.wanglei.Mydadabackend.service.AppService;
+import com.wanglei.Mydadabackend.service.UserService;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author admin
@@ -29,6 +35,9 @@ import java.util.List;
 @Service
 public class AppServiceImpl extends ServiceImpl<AppMapper, App>
         implements AppService {
+
+    @Resource
+    private UserService userService;
 
     @Override
     public QueryWrapper<App> getQueryWrapper(AppQueryRequest appQueryRequest) {
@@ -66,6 +75,19 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>
         List<AppVO> appVOList = appList.stream().map(app -> {
             return AppVO.objToVo(app);
         }).toList();
+        // 1. 关联查询用户信息
+        Set<Long> userIdSet = appList.stream().map(App::getUserId).collect(Collectors.toSet());
+        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
+                .collect(Collectors.groupingBy(User::getId));
+        // 填充信息
+        appVOList.forEach(appVO -> {
+            Long userId = appVO.getUserId();
+            User user = null;
+            if (userIdUserListMap.containsKey(userId)) {
+                user = userIdUserListMap.get(userId).get(0);
+            }
+            appVO.setUser(userService.getUserVO(user));
+        });
         appVOPage.setRecords(appVOList);
         return appVOPage;
     }

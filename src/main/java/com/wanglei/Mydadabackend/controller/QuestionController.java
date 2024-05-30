@@ -27,6 +27,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/question")
+@CrossOrigin(origins = "http://localhost:8080",allowCredentials = "true")
 @Slf4j
 public class QuestionController {
 
@@ -108,7 +109,6 @@ public class QuestionController {
      * @return
      */
     @PostMapping("/update")
-    @AuthCheck(mustRole = "admin")
     public BaseResponse<Boolean> updateQuestion(@RequestBody QuestionUpdateRequest questionUpdateRequest, HttpServletRequest request) {
         if (questionUpdateRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");

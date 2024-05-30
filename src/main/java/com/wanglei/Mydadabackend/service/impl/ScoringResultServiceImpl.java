@@ -2,6 +2,9 @@ package com.wanglei.Mydadabackend.service.impl;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -14,11 +17,13 @@ import com.wanglei.Mydadabackend.mapper.ScoringResultMapper;
 import com.wanglei.Mydadabackend.model.domain.App;
 import com.wanglei.Mydadabackend.model.domain.Question;
 import com.wanglei.Mydadabackend.model.domain.ScoringResult;
+import com.wanglei.Mydadabackend.model.domain.User;
 import com.wanglei.Mydadabackend.model.request.scoringResult.ScoringResultQueryRequest;
 import com.wanglei.Mydadabackend.model.vo.QuestionVO;
 import com.wanglei.Mydadabackend.model.vo.ScoringResultVO;
 import com.wanglei.Mydadabackend.service.AppService;
 import com.wanglei.Mydadabackend.service.ScoringResultService;
+import com.wanglei.Mydadabackend.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +40,9 @@ public class ScoringResultServiceImpl extends ServiceImpl<ScoringResultMapper, S
 
     @Resource
     private AppService appService;
+
+    @Resource
+    private UserService userService;
 
     @Override
     public void validScoringResult(ScoringResult scoringResult, boolean add) {
@@ -95,10 +103,23 @@ public class ScoringResultServiceImpl extends ServiceImpl<ScoringResultMapper, S
         if (CollUtil.isEmpty(scoringResultList)) {
             return scoringResultVOPage;
         }
-        List<ScoringResultVO> questionVOList = scoringResultList.stream().map(scoringResult -> {
+        List<ScoringResultVO> scoringResultVOList = scoringResultList.stream().map(scoringResult -> {
             return ScoringResultVO.objToVo(scoringResult);
         }).toList();
-        scoringResultVOPage.setRecords(questionVOList);
+        // 1. 关联查询用户信息
+        Set<Long> userIdSet = scoringResultList.stream().map(ScoringResult::getUserId).collect(Collectors.toSet());
+        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
+                .collect(Collectors.groupingBy(User::getId));
+        // 填充信息
+        scoringResultVOList.forEach(scoringResultVO -> {
+            Long userId = scoringResultVO.getUserId();
+            User user = null;
+            if (userIdUserListMap.containsKey(userId)) {
+                user = userIdUserListMap.get(userId).get(0);
+            }
+            scoringResultVO.setUser(userService.getUserVO(user));
+        });
+        scoringResultVOPage.setRecords(scoringResultVOList);
         return scoringResultVOPage;
     }
 }

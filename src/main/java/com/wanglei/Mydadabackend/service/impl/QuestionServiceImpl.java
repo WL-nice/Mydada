@@ -10,16 +10,21 @@ import com.wanglei.Mydadabackend.exception.BusinessException;
 import com.wanglei.Mydadabackend.mapper.QuestionMapper;
 import com.wanglei.Mydadabackend.model.domain.App;
 import com.wanglei.Mydadabackend.model.domain.Question;
+import com.wanglei.Mydadabackend.model.domain.User;
 import com.wanglei.Mydadabackend.model.request.question.QuestionQueryRequest;
 import com.wanglei.Mydadabackend.model.vo.QuestionVO;
 import com.wanglei.Mydadabackend.service.AppService;
 import com.wanglei.Mydadabackend.service.QuestionService;
+import com.wanglei.Mydadabackend.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author admin
@@ -32,6 +37,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
 
     @Resource
     private AppService appService;
+
+    @Resource
+    private UserService userService;
 
     @Override
     public void validQuestion(Question question, boolean add) {
@@ -90,6 +98,19 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         List<QuestionVO> questionVOList = questionList.stream().map(question -> {
             return QuestionVO.objToVo(question);
         }).toList();
+        // 1. 关联查询用户信息
+        Set<Long> userIdSet = questionList.stream().map(Question::getUserId).collect(Collectors.toSet());
+        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
+                .collect(Collectors.groupingBy(User::getId));
+        // 填充信息
+        questionVOList.forEach(questionVO -> {
+            Long userId = questionVO.getUserId();
+            User user = null;
+            if (userIdUserListMap.containsKey(userId)) {
+                user = userIdUserListMap.get(userId).get(0);
+            }
+            questionVO.setUser(userService.getUserVO(user));
+        });
         questionVOPage.setRecords(questionVOList);
         return questionVOPage;
     }

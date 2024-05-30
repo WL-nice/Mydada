@@ -2,6 +2,9 @@ package com.wanglei.Mydadabackend.service.impl;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -13,12 +16,14 @@ import com.wanglei.Mydadabackend.exception.BusinessException;
 import com.wanglei.Mydadabackend.mapper.UserAnswerMapper;
 import com.wanglei.Mydadabackend.model.domain.App;
 import com.wanglei.Mydadabackend.model.domain.ScoringResult;
+import com.wanglei.Mydadabackend.model.domain.User;
 import com.wanglei.Mydadabackend.model.domain.UserAnswer;
 import com.wanglei.Mydadabackend.model.request.userAnswer.UserAnswerQueryRequest;
 import com.wanglei.Mydadabackend.model.vo.ScoringResultVO;
 import com.wanglei.Mydadabackend.model.vo.UserAnswerVO;
 import com.wanglei.Mydadabackend.service.AppService;
 import com.wanglei.Mydadabackend.service.UserAnswerService;
+import com.wanglei.Mydadabackend.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +40,9 @@ public class UserAnswerServiceImpl extends ServiceImpl<UserAnswerMapper, UserAns
 
     @Resource
     private AppService appService;
+
+    @Resource
+    private UserService userService;
 
     @Override
     public void validUserAnswer(UserAnswer userAnswer, boolean add) {
@@ -86,10 +94,22 @@ public class UserAnswerServiceImpl extends ServiceImpl<UserAnswerMapper, UserAns
         if (CollUtil.isEmpty(userAnswerList)) {
             return userAnswerVOPage;
         }
-        List<UserAnswerVO> questionVOList = userAnswerList.stream().map(userAnswer -> {
+        List<UserAnswerVO> userAnswerVOList = userAnswerList.stream().map(userAnswer -> {
             return UserAnswerVO.objToVo(userAnswer);
         }).toList();
-        userAnswerVOPage.setRecords(questionVOList);
+        Set<Long> userIdSet = userAnswerList.stream().map(UserAnswer::getUserId).collect(Collectors.toSet());
+        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
+                .collect(Collectors.groupingBy(User::getId));
+        // 填充信息
+        userAnswerVOList.forEach(userAnswerVO -> {
+            Long userId = userAnswerVO.getUserId();
+            User user = null;
+            if (userIdUserListMap.containsKey(userId)) {
+                user = userIdUserListMap.get(userId).get(0);
+            }
+            userAnswerVO.setUser(userService.getUserVO(user));
+        });
+        userAnswerVOPage.setRecords(userAnswerVOList);
         return userAnswerVOPage;
     }
 }

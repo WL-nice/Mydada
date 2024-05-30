@@ -27,6 +27,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/scoringResult")
+@CrossOrigin(origins = "http://localhost:8080",allowCredentials = "true")
 @Slf4j
 public class ScoringResultController {
 
@@ -108,7 +109,6 @@ public class ScoringResultController {
      * @return
      */
     @PostMapping("/update")
-    @AuthCheck(mustRole = "admin")
     public BaseResponse<Boolean> updateScoringResult(@RequestBody ScoringResultUpdateRequest scoringResultUpdateRequest, HttpServletRequest request) {
         if (scoringResultUpdateRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");

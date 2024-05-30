@@ -31,6 +31,7 @@ import java.util.Objects;
 
 @RestController
 @RequestMapping("/userAnswer")
+@CrossOrigin(origins = "http://localhost:8080",allowCredentials = "true")
 @Slf4j
 public class UserAnswerController {
 
@@ -190,12 +191,13 @@ public class UserAnswerController {
         if (userService.getLoginUser(request) == null) {
             throw new BusinessException(ErrorCode.NO_LOGIN);
         }
-        UserAnswer app = userAnswerService.getById(id);
-        if (app == null) {
+        UserAnswer userAnswer = userAnswerService.getById(id);
+        if (userAnswer == null) {
             throw new BusinessException(ErrorCode.NULL_ERROR);
         }
-        UserAnswerVO appVO = UserAnswerVO.objToVo(app);
-        return ResultUtils.success(appVO);
+        UserAnswerVO userAnswerVO = UserAnswerVO.objToVo(userAnswer);
+        userAnswerVO.setUser(userService.getUserVOById(userAnswer.getUserId()));
+        return ResultUtils.success(userAnswerVO);
     }
 
     /**
