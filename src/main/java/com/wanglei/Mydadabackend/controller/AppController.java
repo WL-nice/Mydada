@@ -189,6 +189,7 @@ public class AppController {
             throw new BusinessException(ErrorCode.NULL_ERROR);
         }
         AppVO appVO = AppVO.objToVo(app);
+        appVO.setUser(userService.getUserVOById(app.getUserId()));
         return ResultUtils.success(appVO);
     }
 

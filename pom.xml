@@ -84,6 +84,11 @@
 			<artifactId>spring-boot-starter-aop</artifactId>
 			<version>3.2.1</version>
 		</dependency>
+		<dependency>
+			<groupId>cn.bigmodel.openapi</groupId>
+			<artifactId>oapi-java-sdk</artifactId>
+			<version>release-V4-2.0.2</version>
+		</dependency>
 
 
 
