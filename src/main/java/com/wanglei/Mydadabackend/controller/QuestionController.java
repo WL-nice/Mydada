@@ -275,6 +275,11 @@ public class QuestionController {
         return userMessage.toString();
     }
 
+    /**
+     * AI 生成题目
+     * @param aiGenerateQuestionRequest
+     * @return
+     */
     @PostMapping("/ai_generate")
     public BaseResponse<List<QuestionContentDTO>> aiGenerateQuestion(
             @RequestBody AiGenerateQuestionRequest aiGenerateQuestionRequest) {

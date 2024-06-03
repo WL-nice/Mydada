@@ -34,8 +34,6 @@ public class UserController {
     @Resource
     private UserService userService;
 
-    @Resource
-    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 用户注册

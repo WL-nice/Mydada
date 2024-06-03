@@ -11,9 +11,11 @@ import com.wanglei.Mydadabackend.model.request.question.QuestionContentDTO;
 import com.wanglei.Mydadabackend.model.vo.QuestionVO;
 import com.wanglei.Mydadabackend.service.QuestionService;
 import jakarta.annotation.Resource;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @ScoringStrategyConfig(appType = 1, scoringStrategy = 1)
 public class AiTestScoringStrategy implements ScoringStrategy {
@@ -23,6 +25,9 @@ public class AiTestScoringStrategy implements ScoringStrategy {
 
     @Resource
     private AiManager aiManager;
+
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * AI 评分系统消息
@@ -52,6 +57,12 @@ public class AiTestScoringStrategy implements ScoringStrategy {
         QuestionVO questionVO = QuestionVO.objToVo(question);
         List<QuestionContentDTO> questionContent = questionVO.getQuestionContent();
 
+        String redisKey = appId + ":" + JSONUtil.toJsonStr(choices);
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(redisKey))) {
+            // 缓存命中
+            return (UserAnswer) redisTemplate.opsForValue().get(redisKey);
+        }
+
         // 2. 调用 AI 获取结果
         // 封装 Prompt
         String userMessage = getAiTestScoringUserMessage(app, questionContent, choices);
@@ -68,6 +79,8 @@ public class AiTestScoringStrategy implements ScoringStrategy {
         userAnswer.setAppType(app.getAppType());
         userAnswer.setScoringStrategy(app.getScoringStrategy());
         userAnswer.setChoices(JSONUtil.toJsonStr(choices));
+        // 缓存
+        redisTemplate.opsForValue().set(redisKey, userAnswer,5, TimeUnit.HOURS);
         return userAnswer;
     }
 
