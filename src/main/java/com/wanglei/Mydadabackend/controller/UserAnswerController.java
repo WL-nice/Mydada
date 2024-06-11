@@ -1,6 +1,7 @@
 package com.wanglei.Mydadabackend.controller;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -9,6 +10,7 @@ import com.wanglei.Mydadabackend.commmon.BaseResponse;
 import com.wanglei.Mydadabackend.commmon.ErrorCode;
 import com.wanglei.Mydadabackend.commmon.ResultUtils;
 import com.wanglei.Mydadabackend.exception.BusinessException;
+import com.wanglei.Mydadabackend.manager.RedisLimiterManager;
 import com.wanglei.Mydadabackend.model.domain.App;
 import com.wanglei.Mydadabackend.model.domain.UserAnswer;
 import com.wanglei.Mydadabackend.model.domain.User;
@@ -24,6 +26,7 @@ import com.wanglei.Mydadabackend.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,7 +34,7 @@ import java.util.Objects;
 
 @RestController
 @RequestMapping("/userAnswer")
-@CrossOrigin(origins = "http://localhost:8080",allowCredentials = "true")
+@CrossOrigin(origins = "http://localhost:8080", allowCredentials = "true")
 @Slf4j
 public class UserAnswerController {
 
@@ -46,6 +49,9 @@ public class UserAnswerController {
 
     @Resource
     private ScoringStrategyExecutor scoringStrategyExecutor;
+
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
 
     /**
      * 添加答题结果
@@ -73,7 +79,7 @@ public class UserAnswerController {
         if (app == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "应用不存在");
         }
-        if(!Objects.equals(ReviewStatusEnum.getEnumByValue(app.getReviewStatus()), ReviewStatusEnum.PASS)){
+        if (!Objects.equals(ReviewStatusEnum.getEnumByValue(app.getReviewStatus()), ReviewStatusEnum.PASS)) {
             throw new BusinessException(ErrorCode.NO_AUTH, "应用未审核通过");
         }
 
@@ -84,21 +90,29 @@ public class UserAnswerController {
         }
         userAnswer.setUserId(loginUser.getId());
 
+        // 限流判断，每个用户一个限流器
+        redisLimiterManager.doRateLimit("getUserAnswer_" + loginUser.getId());
 
-        //插入数据
-        boolean result = userAnswerService.save(userAnswer);
-        if (!result) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        try{
+            //插入数据
+            boolean result = userAnswerService.save(userAnswer);
+            if (!result) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+            }
+
+        }catch (DuplicateKeyException e){
+            // ignore
         }
+
 
         //评分
         Long userAnswerId = userAnswer.getId();
-        try{
+        try {
             UserAnswer newUserAnswer = scoringStrategyExecutor.doScore(choices, app);
             newUserAnswer.setId(userAnswerId);
             userAnswerService.updateById(newUserAnswer);
-        }catch (Exception e){
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"评分错误");
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评分错误");
         }
 
         return ResultUtils.success(userAnswerId);
@@ -269,6 +283,13 @@ public class UserAnswerController {
         QueryWrapper<UserAnswer> queryWrapper = userAnswerService.getQueryWrapper(appQueryRequest);
         Page<UserAnswer> page = userAnswerService.page(new Page<>(current, pageSize), queryWrapper);
         return ResultUtils.success(userAnswerService.getVOPage(page, request));
+    }
+
+    @GetMapping("/generate/id")
+    public BaseResponse<Long> generateId() {
+        long snowflakeNextId = IdUtil.getSnowflakeNextId();
+//        log.info("生成Id为：" + snowflakeNextId);
+        return ResultUtils.success(snowflakeNextId);
     }
 
 

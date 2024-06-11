@@ -10,6 +10,7 @@ import com.wanglei.Mydadabackend.commmon.ErrorCode;
 import com.wanglei.Mydadabackend.commmon.ResultUtils;
 import com.wanglei.Mydadabackend.exception.BusinessException;
 import com.wanglei.Mydadabackend.manager.AiManager;
+import com.wanglei.Mydadabackend.manager.RedisLimiterManager;
 import com.wanglei.Mydadabackend.model.domain.App;
 import com.wanglei.Mydadabackend.model.domain.Question;
 import com.wanglei.Mydadabackend.model.domain.User;
@@ -28,7 +29,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/question")
-@CrossOrigin(origins = "http://localhost:8080",allowCredentials = "true")
+@CrossOrigin(origins = "http://localhost:8080", allowCredentials = "true")
 @Slf4j
 public class QuestionController {
 
@@ -43,6 +44,9 @@ public class QuestionController {
 
     @Resource
     private AiManager aiManager;
+
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
 
     /**
      * 添加问题
@@ -124,7 +128,7 @@ public class QuestionController {
         if (loginUser == null) {
             throw new BusinessException(ErrorCode.NO_LOGIN);
         }
-        
+
         //获取数据
         Question oldQuestion = questionService.getById(questionUpdateRequest.getId());
         if (oldQuestion == null) {
@@ -145,10 +149,11 @@ public class QuestionController {
         }
         return ResultUtils.success(true);
     }
-    
+
 
     /**
      * 根据id获取问题
+     *
      * @param id
      * @param request
      * @return
@@ -171,6 +176,7 @@ public class QuestionController {
 
     /**
      * 分页获取问题列表（管理员）
+     *
      * @param questionQueryRequest
      * @param request
      * @return
@@ -178,7 +184,7 @@ public class QuestionController {
     @PostMapping("/list/page")
     @AuthCheck(mustRole = "admin")
     public BaseResponse<Page<Question>> listQuestionByPage(@RequestBody QuestionQueryRequest questionQueryRequest,
-                                                 HttpServletRequest request) {
+                                                           HttpServletRequest request) {
         if (questionQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -194,13 +200,14 @@ public class QuestionController {
 
     /**
      * 分页获取问题列表（用户）
+     *
      * @param appQueryRequest
      * @param request
      * @return
      */
     @PostMapping("/list/page/vo")
     public BaseResponse<Page<QuestionVO>> listQuestionVOByPage(@RequestBody QuestionQueryRequest appQueryRequest,
-                                                     HttpServletRequest request) {
+                                                               HttpServletRequest request) {
         if (appQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -211,18 +218,19 @@ public class QuestionController {
         }
         QueryWrapper<Question> queryWrapper = questionService.getQueryWrapper(appQueryRequest);
         Page<Question> page = questionService.page(new Page<>(current, pageSize), queryWrapper);
-        return ResultUtils.success(questionService.getVOPage(page,request));
+        return ResultUtils.success(questionService.getVOPage(page, request));
     }
 
     /**
      * 获取当前用户创建问题列表
+     *
      * @param appQueryRequest
      * @param request
      * @return
      */
     @PostMapping("/my/list/page/vo")
     public BaseResponse<Page<QuestionVO>> listMyQuestionVOByPage(@RequestBody QuestionQueryRequest appQueryRequest,
-                                                       HttpServletRequest request) {
+                                                                 HttpServletRequest request) {
         if (appQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -234,7 +242,7 @@ public class QuestionController {
         }
         QueryWrapper<Question> queryWrapper = questionService.getQueryWrapper(appQueryRequest);
         Page<Question> page = questionService.page(new Page<>(current, pageSize), queryWrapper);
-        return ResultUtils.success(questionService.getVOPage(page,request));
+        return ResultUtils.success(questionService.getVOPage(page, request));
     }
 
     // region AI 生成题目功能
@@ -277,13 +285,14 @@ public class QuestionController {
 
     /**
      * AI 生成题目
+     *
      * @param aiGenerateQuestionRequest
      * @return
      */
     @PostMapping("/ai_generate")
     public BaseResponse<List<QuestionContentDTO>> aiGenerateQuestion(
-            @RequestBody AiGenerateQuestionRequest aiGenerateQuestionRequest) {
-        if(aiGenerateQuestionRequest == null){
+            @RequestBody AiGenerateQuestionRequest aiGenerateQuestionRequest, HttpServletRequest request) {
+        if (aiGenerateQuestionRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 获取参数
@@ -292,9 +301,11 @@ public class QuestionController {
         int optionNumber = aiGenerateQuestionRequest.getOptionNumber();
         // 获取应用信息
         App app = appService.getById(appId);
-        if(app == null){
+        if (app == null) {
             throw new BusinessException(ErrorCode.NULL_ERROR);
         }
+        //限流
+        redisLimiterManager.doRateLimit("question_ai_generate" + userService.getLoginUser(request).getId());
         // 封装 Prompt
         String userMessage = getGenerateQuestionUserMessage(app, questionNumber, optionNumber);
         // AI 生成
