@@ -2,6 +2,7 @@ package com.wanglei.Mydadabackend.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.wanglei.Mydadabackend.model.domain.UserAnswer;
+import com.wanglei.Mydadabackend.model.dto.AppAnswerResultCountDTO;
 import com.wanglei.Mydadabackend.model.dto.UserAnswerCountDTO;
 import org.apache.ibatis.annotations.Select;
 
@@ -18,8 +19,8 @@ public interface UserAnswerMapper extends BaseMapper<UserAnswer> {
     @Select("select appId, count(appId) as answerCount from user_answer group by appId order by answerCount desc limit 10;")
     List<UserAnswerCountDTO> getUserAnswerCount();
 
-
-
+    @Select("select resultName,count(resultName) as resultCount from user_answer where appId = #{appId} group by resultName order by resultCount desc limit 10;")
+    List<AppAnswerResultCountDTO> getAppAnswerResultCount(Long appId);
 }
 
 

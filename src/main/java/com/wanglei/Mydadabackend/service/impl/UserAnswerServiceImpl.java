@@ -48,6 +48,11 @@ public class UserAnswerServiceImpl extends ServiceImpl<UserAnswerMapper, UserAns
     public void validUserAnswer(UserAnswer userAnswer, boolean add) {
 
         String choices = userAnswer.getChoices();
+        Long id = userAnswer.getId();
+        if (add && (id==null||id<=0)){
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "id非法");
+
+        }
 
         if (choices == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "选项不能为空");

@@ -2,6 +2,9 @@ package com.wanglei.Mydadabackend.model.dto;
 
 import lombok.Data;
 
+/**
+ * 用户回答数量
+ */
 @Data
 public class UserAnswerCountDTO {
 

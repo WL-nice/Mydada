@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 public class UserAnswerAddRequest implements Serializable {
     /**
-     * 应用 id (用于保证幂等性)
+     * 答案 id (用于保证幂等性)
      */
     private Long id;
 
